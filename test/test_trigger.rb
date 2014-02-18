@@ -39,13 +39,31 @@ class TestTrigger < TestCase
     let(:client) { Trigger::Client.create }
 
     it "subscribe to an event" do
-      subscriber = client.subscribe(:greet)
+      subscriber = client.subscribe(:greet) {}
       assert client.subscribers_for(:greet).include?(subscriber)
     end
   end
 
-  describe "a subscriber" do
+  describe "subscriber" do
+    class GreetSubscriber < Trigger::Subscriber
+      def name
+        event.data[:name]
+      end
+
+      def perform
+        return "Hello, #{name}"
+      end
+    end
+
     let(:client) { Trigger::Client.create }
+    let(:event) { Trigger::Event.new(:greet, nil, :name => "Chris") }
+
+    it "should create new instance and call #perform on .receive" do
+      instance = stub
+      instance.expects(:perform)
+      GreetSubscriber.expects(:new).with(event).returns(instance)
+      GreetSubscriber.receive(event)
+    end
 
     it "should execute block for #receive" do
       subscriber = client.subscribe(:greet) do |event|
@@ -63,9 +81,9 @@ class TestTrigger < TestCase
 
   describe ".subscribers_for" do
     let(:client)       { Trigger::Client.create }
-    let(:subscriber_a) { client.subscribe :greet }
-    let(:subscriber_b) { client.subscribe :greet }
-    let(:subscriber_c) { client.subscribe :greet, 'spanish' }
+    let(:subscriber_a) { client.subscribe(:greet) {} }
+    let(:subscriber_b) { client.subscribe(:greet) {} }
+    let(:subscriber_c) { client.subscribe(:greet, 'spanish') {} }
 
     it "should return subscribers for event :greet" do
       assert_equal [subscriber_a, subscriber_b, subscriber_c],
@@ -103,6 +121,21 @@ class TestTrigger < TestCase
       client.publish :greet, 'spanish', :name => "Chris"
     end
   end
+
+  describe ".create_inline_subscriber" do
+    let(:client) { Trigger::Client.create }
+
+    it "should create an anonymous class which responds to .receive" do
+      subscriber = client.create_inline_subscriber do |event|
+        return "Hello"
+      end
+
+      assert_kind_of Class, subscriber
+      assert subscriber.respond_to?(:receive)
+      assert_equal 1, subscriber.method(:receive).arity
+      assert_equal 'Hello', subscriber.receive(nil)
+    end
+  end
    
   describe "integration" do
     module GreetTriggers
@@ -117,12 +150,20 @@ class TestTrigger < TestCase
       end
 
       subscribe :greet do |event|
-        buffer << "Hello, #{event.data[:name]}"
+        GreetTriggers.buffer << "Hello, #{event.data[:name]}"
       end
       
       subscribe :greet, 'spanish' do |event|
-        buffer << "Hola, #{event.data[:name]}"
+        GreetTriggers.buffer << "Hola, #{event.data[:name]}"
       end
+
+      class GreetInFrench < Trigger::Subscriber
+        def perform
+          GreetTriggers.buffer << "Bonjour, #{event.data[:name]}"
+        end
+      end
+
+      subscribe :greet, 'french', GreetInFrench
     end
 
     before do
@@ -131,12 +172,21 @@ class TestTrigger < TestCase
 
     it "should trigger event :greet" do
       GreetTriggers.trigger :greet, :name => "Chris"
-      assert_equal ['Hello, Chris', 'Hola, Chris'], GreetTriggers.buffer
+      assert_equal [
+        'Hello, Chris',
+        'Hola, Chris',
+        'Bonjour, Chris'
+      ], GreetTriggers.buffer
     end
 
-    it "should trigger event :greent having tag 'spanish'" do
+    it "should trigger event :greet having tag 'spanish'" do
       GreetTriggers.trigger :greet, 'spanish', :name => "Chris"
       assert_equal ['Hola, Chris'], GreetTriggers.buffer
+    end
+
+    it "should trigger event :greet having tag 'french'" do
+      GreetTriggers.trigger :greet, 'french', :name => "Chris"
+      assert_equal ['Bonjour, Chris'], GreetTriggers.buffer
     end
   end
 end
