@@ -111,11 +111,10 @@ of the subscriber is effectively ignored).
 When a subscriber receives a message, an event object is passed as
 parameter.  The object has the following properties:
 
-Property | Description | Example/Notes
---------------------------------
-name     | base name of the event | "greet" for a published "greet" or "greet:spanish" event
-namespace | namespaces of the event | nil for a published "greet" message
-          |                         | "spanish" for a published "greet:spanish" message
+Property  | Description | Example/Notes
+--------- | ------------- | --------
+name      | base name of the event | "greet" for a published "greet" or "greet:spanish" event
+namespace | namespaces of the event | nil for a published "greet" message, "spanish" for a published "greet:spanish" message
 data      | user-submitted data hash | for convenience, event[key] will access event.data[key]
 
 ## Contributing to trigger
