@@ -1,18 +1,49 @@
 module Trigger
   class Event
-    attr_reader :name, :tag, :data
+    attr_reader :data
 
-    def initialize(name, tag=nil, data={})
-      @name = name
-      @tag  = tag
+    def initialize(name, data={})
+      @event_name = EventName.new(name)
       @data = data
       @data = Hash.new unless @data.is_a?(Hash)
+    end
+
+    def name
+      @event_name.name
+    end
+
+    def namespace
+      @event_name.namespace
+    end
+
+    def full_name
+      @event_name.full_name
     end
 
     # convenience method to access data properties
     # event[key] is just a shortcut for event.data[key]
     def [](key)
       @data[key]
+    end
+  end
+
+  class EventName
+    attr_accessor :name, :namespace
+
+    def initialize(name)
+      @name, @namespace = self.class.parse(name)
+    end
+
+    def full_name
+      return @name if @namespace.nil?
+      [@name, @namespace].join(':')
+    end
+
+    def self.parse(name)
+      name, namespace = name.to_s.split(':')
+      namespace = namespace || namespace
+      namespace = nil if namespace == ''
+      return name, namespace
     end
   end
 
@@ -47,16 +78,18 @@ module Trigger
       @subscribers ||= Hash.new { |h,k| h[k] = [] }
     end
 
-    # returns all subscribers for given event name and optional tag
-    # if tag is provided, the results are filtered to include only
-    # those with matching tag
-    #
+    # returns all subscribers for given event name
+    # if the name is namespaced e.g. 
     # subscribers_for(:greet) #=> all :greet subscribers, tag ignored
     # subscribers_for(:greet, 'spanish') #=> only :greet subscribers with tag 'spanish'
-    def subscribers_for(name, tag=nil)
-      result = subscribers[name.to_sym]
+    def subscribers_for(name)
+      event_name = EventName.new(name)
+      name       = event_name.name.to_sym
+      namespace  = event_name.namespace
+
+      result = subscribers[name]
       result = result.map do |e|
-        e[:class] if tag.nil? || e[:tag] == tag
+        e[:class] if namespace.nil? || e[:namespace] == namespace
       end.compact
     end
 
@@ -66,8 +99,8 @@ module Trigger
       end
     end
 
-    # creates a new subscriber for the given event name
-    # and optional tag
+    # creates a new subscriber for the given event name,
+    # which can be namespaced if desired using name:namespace
     #
     # the provided block, which is called whenever the subscribed
     # event gets triggered, should accept a single parameter,
@@ -75,32 +108,32 @@ module Trigger
     # Event object:
     #
     # client = Trigger::Client.new
-    # client.subscribe :event, 'optional tag' do |event|
+    # client.subscribe "greet" do |event|
     #   # handle event
     # end
     def subscribe(name, *args, &block)
       if block_given?
         # we received a block, so create a new subscriber inline
         # and optional tag form args
-        tag = args.shift
         subscriber = create_inline_subscriber(&block)
       else
         # no block, so the last argument is assumed to be a
         # callback class
         klass = args.pop
-        tag   = args.shift
         subscriber = klass
 
         raise "Subscriber class must repond to .receive" unless subscriber.respond_to?(:receive)
       end
 
-      subscribers[name.to_sym] << { :class => subscriber, :tag => tag }
+      name, namespace = EventName.parse(name)
+
+      subscribers[name.to_sym] << { :class => subscriber, :namespace => namespace }
       subscriber
     end
 
     # build a new Event object for the given event name, tag and data
-    def build_event(name, tag, data)
-      Event.new(name, tag, data)
+    def build_event(name, data)
+      Event.new(name, data)
     end
 
     # triggers the given event name which will invoke +receive+ on
@@ -113,12 +146,10 @@ module Trigger
     #
     # trigger(:greet, :name => "Chris") #=> name, data
     # trigger(:greet, 'spanish', :name => "Chris") #=> name, tag, data
-    def trigger(name, *args)
-      data  = args.pop if args.last.is_a?(Hash)
-      tag   = args.shift
-      event = build_event(name, tag, data)
+    def trigger(name, data={})
+      event = build_event(name, data)
 
-      subscribers_for(name, tag).each do |subscriber|
+      subscribers_for(event.full_name).each do |subscriber|
         subscriber.receive(event)
       end
     end
@@ -127,8 +158,8 @@ module Trigger
     # subclasses may override this method to perform
     # more advanced processing (such as queueing the event
     # for later triggering)
-    def publish(name, *args)
-      trigger(name, *args)
+    def publish(name, data={})
+      trigger(name, data)
     end
   end
 end

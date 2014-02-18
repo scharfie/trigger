@@ -2,15 +2,40 @@ require 'helper'
 require 'trigger'
 
 class TestTrigger < TestCase
+  describe "event name" do
+    it "should parse name and namespace" do
+      event = Trigger::EventName.new("greet:spanish")
+      assert_equal 'greet', event.name
+      assert_equal 'spanish', event.namespace
+    end
+
+    it "should parse name without namespace" do
+      event = Trigger::EventName.new(:greet)
+      assert_equal 'greet', event.name
+      assert_nil event.namespace
+    end
+
+    it "should ignore empty namespace" do
+      event = Trigger::EventName.new('greet:')
+      assert_equal 'greet', event.name
+      assert_nil event.namespace
+    end
+
+    it "should provide full_name (name with namespace)" do
+      event = Trigger::EventName.new("greet:spanish")
+      assert_equal 'greet:spanish', event.full_name
+    end
+  end
+
   describe "event" do
-    let(:event) { Trigger::Event.new(:greet, 'spanish', :name => "Chris") }
+    let(:event) { Trigger::Event.new('greet:spanish', :name => "Chris") }
 
     it "should have name" do
-      assert_equal :greet, event.name
+      assert_equal 'greet', event.name
     end
 
     it "should have tag" do
-      assert_equal 'spanish', event.tag
+      assert_equal 'spanish', event.namespace
     end
 
     it "should have data" do
@@ -56,7 +81,7 @@ class TestTrigger < TestCase
     end
 
     let(:client) { Trigger::Client.create }
-    let(:event) { Trigger::Event.new(:greet, nil, :name => "Chris") }
+    let(:event) { Trigger::Event.new(:greet, :name => "Chris") }
 
     it "should create new instance and call #perform on .receive" do
       instance = stub
@@ -73,7 +98,7 @@ class TestTrigger < TestCase
       assert_equal 'Hello, Chris',
         subscriber.receive(
           Trigger::Event.new(
-            :greet, nil, :name => "Chris"
+            :greet, :name => "Chris"
           )
       )
     end
@@ -83,7 +108,7 @@ class TestTrigger < TestCase
     let(:client)       { Trigger::Client.create }
     let(:subscriber_a) { client.subscribe(:greet) {} }
     let(:subscriber_b) { client.subscribe(:greet) {} }
-    let(:subscriber_c) { client.subscribe(:greet, 'spanish') {} }
+    let(:subscriber_c) { client.subscribe('greet:spanish') {} }
 
     it "should return subscribers for event :greet" do
       assert_equal [subscriber_a, subscriber_b, subscriber_c],
@@ -92,7 +117,7 @@ class TestTrigger < TestCase
 
     it "should return subscribers for event :greet with tag 'spanish'" do
       assert_equal [subscriber_c],
-        client.subscribers_for(:greet, 'spanish')
+        client.subscribers_for('greet:spanish')
     end
   end
 
@@ -101,15 +126,19 @@ class TestTrigger < TestCase
     let(:data)   { Hash.new(:name => "Chris") }
 
     it "should build event object to deliver" do
-      client.expects(:build_event).with(:greet, 'some tag', data)
-      client.trigger :greet, 'some tag', data
+      event = client.build_event('greet:sometag', data)
+
+      client.expects(:build_event).with('greet:sometag', data).
+        returns(event)
+
+      client.trigger 'greet:sometag', data
     end
 
-    it "should find subscribers with event name and tag" do
-      client.expects(:subscribers_for).with(:greet, 'some tag').
+    it "should find subscribers with event name and namespace" do
+      client.expects(:subscribers_for).with('greet:sometag').
         returns([])
 
-      client.trigger :greet, 'some tag', data
+      client.trigger 'greet:sometag', data
     end
   end
 
@@ -117,8 +146,8 @@ class TestTrigger < TestCase
     let(:client) { Trigger::Client.create }
     
     it "should invoke trigger" do
-      client.expects(:trigger).with(:greet, 'spanish', :name => "Chris")
-      client.publish :greet, 'spanish', :name => "Chris"
+      client.expects(:trigger).with('greet:spanish', :name => "Chris")
+      client.publish 'greet:spanish', :name => "Chris"
     end
   end
 
@@ -134,6 +163,38 @@ class TestTrigger < TestCase
       assert subscriber.respond_to?(:receive)
       assert_equal 1, subscriber.method(:receive).arity
       assert_equal 'Hello', subscriber.receive(nil)
+    end
+  end
+
+  describe "override publish" do
+    module CustomPublish
+      extend Trigger::Client
+      def self.buffer
+        @buffer ||= []
+      end
+
+      def self.buffer=(value)
+        @buffer = value
+      end
+
+      subscribe :greet do |event|
+        CustomPublish.buffer << "Welcome"
+      end
+
+      def self.publish(name, *args)
+        CustomPublish.buffer << "Dear friend"
+        super
+      end
+    end
+
+    let(:client) { CustomPublish }
+    
+    it "should invoke publish with super" do
+      client.publish(:greet)
+      assert_equal [
+        'Dear friend',
+        'Welcome'
+      ], CustomPublish.buffer
     end
   end
    
@@ -153,7 +214,7 @@ class TestTrigger < TestCase
         GreetTriggers.buffer << "Hello, #{event.data[:name]}"
       end
       
-      subscribe :greet, 'spanish' do |event|
+      subscribe 'greet:spanish' do |event|
         GreetTriggers.buffer << "Hola, #{event.data[:name]}"
       end
 
@@ -163,7 +224,7 @@ class TestTrigger < TestCase
         end
       end
 
-      subscribe :greet, 'french', GreetInFrench
+      subscribe 'greet:french', GreetInFrench
     end
 
     before do
@@ -179,13 +240,13 @@ class TestTrigger < TestCase
       ], GreetTriggers.buffer
     end
 
-    it "should trigger event :greet having tag 'spanish'" do
-      GreetTriggers.trigger :greet, 'spanish', :name => "Chris"
+    it "should trigger event 'greet:spanish'" do
+      GreetTriggers.trigger 'greet:spanish', :name => "Chris"
       assert_equal ['Hola, Chris'], GreetTriggers.buffer
     end
 
     it "should trigger event :greet having tag 'french'" do
-      GreetTriggers.trigger :greet, 'french', :name => "Chris"
+      GreetTriggers.trigger 'greet:french', :name => "Chris"
       assert_equal ['Bonjour, Chris'], GreetTriggers.buffer
     end
   end
