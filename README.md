@@ -111,11 +111,18 @@ of the subscriber is effectively ignored).
 When a subscriber receives a message, an event object is passed as
 parameter.  The object has the following properties:
 
-Property  | Description | Example/Notes
---------- | ------------- | --------
-name      | base name of the event | "greet" for a published "greet" or "greet:spanish" event
-namespace | namespaces of the event | nil for a published "greet" message, "spanish" for a published "greet:spanish" message
-data      | user-submitted data hash | for convenience, event[key] will access event.data[key]
+```ruby
+  e = Event.new("greet", :name => "Chris")
+  e.name       #=> 'greet'
+  e.namespace  #=> nil
+  e.full_name  #=> 'greet'
+  e.data       #=> { :name => "Chris" }
+  e[:name]     #=> "Chris"
+
+  e2 = Event.new("greet:spanish")
+  e2.name      #=> 'greet'
+  e2.namespace #=> 'spanish'
+  e2.full_name #=> 'greet:spanish'
 
 ## Contributing to trigger
  
