@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = "trigger"
-  s.version = "0.1.0"
+  s.version = "0.2.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Chris Scharf"]
@@ -42,6 +42,7 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<rdoc>, ["~> 3.12"])
       s.add_development_dependency(%q<bundler>, ["~> 1.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 2.0.1"])
+      s.add_development_dependency(%q<faraday>, ["~> 0.8"])
       s.add_development_dependency(%q<minitest>, [">= 0"])
       s.add_development_dependency(%q<mocha>, ["~> 0.13"])
       s.add_development_dependency(%q<simplecov>, ["= 0.7.1"])
@@ -49,6 +50,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<rdoc>, ["~> 3.12"])
       s.add_dependency(%q<bundler>, ["~> 1.0"])
       s.add_dependency(%q<jeweler>, ["~> 2.0.1"])
+      s.add_dependency(%q<faraday>, ["~> 0.8"])
       s.add_dependency(%q<minitest>, [">= 0"])
       s.add_dependency(%q<mocha>, ["~> 0.13"])
       s.add_dependency(%q<simplecov>, ["= 0.7.1"])
@@ -57,6 +59,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<rdoc>, ["~> 3.12"])
     s.add_dependency(%q<bundler>, ["~> 1.0"])
     s.add_dependency(%q<jeweler>, ["~> 2.0.1"])
+    s.add_dependency(%q<faraday>, ["~> 0.8"])
     s.add_dependency(%q<minitest>, [">= 0"])
     s.add_dependency(%q<mocha>, ["~> 0.13"])
     s.add_dependency(%q<simplecov>, ["= 0.7.1"])

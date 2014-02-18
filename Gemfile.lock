@@ -59,6 +59,7 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (~> 1.0)
+  faraday (~> 0.8)
   jeweler (~> 2.0.1)
   minitest
   mocha (~> 0.13)

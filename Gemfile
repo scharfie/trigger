@@ -9,6 +9,7 @@ group :development do
   gem "rdoc", "~> 3.12"
   gem "bundler", "~> 1.0"
   gem "jeweler", "~> 2.0.1"
+  gem "faraday", "~> 0.8"
   gem 'minitest'
   gem 'mocha', '~> 0.13', :require => false
   gem "simplecov", "= 0.7.1"

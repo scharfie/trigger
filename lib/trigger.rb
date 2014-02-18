@@ -17,16 +17,18 @@ module Trigger
   end
 
   class Subscriber
-    attr_reader :name, :tag
+    attr_accessor :event
 
-    def initialize(name, tag, &block)
-      @name = name
-      @tag  = tag
-      @callback = block
+    def initialize(event)
+      @event = event
     end
 
-    def receive(event)
-      @callback.call(event) if @callback
+    def perform
+      raise "Subscriber#perform not implemented"
+    end
+
+    def self.receive(event)
+      new(event).perform
     end
   end
 
@@ -50,11 +52,18 @@ module Trigger
     # those with matching tag
     #
     # subscribers_for(:greet) #=> all :greet subscribers, tag ignored
-    # subscribers_for(:greet, 'spanish') #=> only :greent subscribers with tag 'spanish'
+    # subscribers_for(:greet, 'spanish') #=> only :greet subscribers with tag 'spanish'
     def subscribers_for(name, tag=nil)
       result = subscribers[name.to_sym]
-      result = result.select { |e| e.tag == tag } unless tag.nil?
-      result
+      result = result.map do |e|
+        e[:class] if tag.nil? || e[:tag] == tag
+      end.compact
+    end
+
+    def create_inline_subscriber(&block)
+      Class.new do
+        define_singleton_method :receive, block
+      end
     end
 
     # creates a new subscriber for the given event name
@@ -69,9 +78,23 @@ module Trigger
     # client.subscribe :event, 'optional tag' do |event|
     #   # handle event
     # end
-    def subscribe(name, tag=nil, &block)
-      subscriber = Subscriber.new(name, tag, &block)
-      subscribers[name.to_sym] << subscriber
+    def subscribe(name, *args, &block)
+      if block_given?
+        # we received a block, so create a new subscriber inline
+        # and optional tag form args
+        tag = args.shift
+        subscriber = create_inline_subscriber(&block)
+      else
+        # no block, so the last argument is assumed to be a
+        # callback class
+        klass = args.pop
+        tag   = args.shift
+        subscriber = klass
+
+        raise "Subscriber class must repond to .receive" unless subscriber.respond_to?(:receive)
+      end
+
+      subscribers[name.to_sym] << { :class => subscriber, :tag => tag }
       subscriber
     end
 
