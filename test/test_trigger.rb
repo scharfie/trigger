@@ -2,6 +2,39 @@ require 'helper'
 require 'trigger'
 
 class TestTrigger < TestCase
+  describe "event" do
+    let(:event) { Trigger::Event.new(:greet, 'spanish', :name => "Chris") }
+
+    it "should have name" do
+      assert_equal :greet, event.name
+    end
+
+    it "should have tag" do
+      assert_equal 'spanish', event.tag
+    end
+
+    it "should have data" do
+      assert_equal({:name => "Chris"}, event.data)
+    end
+
+    it "should allow access to data via []" do
+      assert_equal 'Chris', event[:name]
+    end
+
+    it "should ensure data is a hash" do
+      event = Trigger::Event.new(:greet)
+      assert_kind_of Hash, event.data
+    end
+  end
+
+  describe "client" do
+    it "should create a new client module" do
+      client = Trigger::Client.create
+      assert_kind_of Module, client
+      assert client.singleton_class.included_modules.include?(Trigger::Client)
+    end
+  end
+
   describe "subscription" do
     let(:client) { Trigger::Client.create }
 
@@ -59,6 +92,15 @@ class TestTrigger < TestCase
         returns([])
 
       client.trigger :greet, 'some tag', data
+    end
+  end
+
+  describe ".publish" do
+    let(:client) { Trigger::Client.create }
+    
+    it "should invoke trigger" do
+      client.expects(:trigger).with(:greet, 'spanish', :name => "Chris")
+      client.publish :greet, 'spanish', :name => "Chris"
     end
   end
    

@@ -2,7 +2,7 @@ module Trigger
   class Event
     attr_reader :name, :tag, :data
 
-    def initialize(name, tag, data)
+    def initialize(name, tag=nil, data={})
       @name = name
       @tag  = tag
       @data = data

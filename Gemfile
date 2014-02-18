@@ -11,5 +11,5 @@ group :development do
   gem "jeweler", "~> 2.0.1"
   gem 'minitest'
   gem 'mocha', '~> 0.13', :require => false
-  # gem "simplecov", ">= 0"
+  gem "simplecov", "= 0.7.1"
 end

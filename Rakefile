@@ -17,8 +17,8 @@ Jeweler::Tasks.new do |gem|
   gem.name = "trigger"
   gem.homepage = "http://github.com/scharfie/trigger"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{very basic system for creating event subscribers and triggering events}
+  gem.description = %Q{}
   gem.email = "scharfie@gmail.com"
   gem.authors = ["Chris Scharf"]
   # dependencies defined in Gemfile

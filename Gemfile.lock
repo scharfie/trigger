@@ -49,6 +49,10 @@ GEM
     rake (10.1.1)
     rdoc (3.12.2)
       json (~> 1.4)
+    simplecov (0.7.1)
+      multi_json (~> 1.0)
+      simplecov-html (~> 0.7.1)
+    simplecov-html (0.7.1)
 
 PLATFORMS
   ruby
@@ -59,3 +63,4 @@ DEPENDENCIES
   minitest
   mocha (~> 0.13)
   rdoc (~> 3.12)
+  simplecov (= 0.7.1)
