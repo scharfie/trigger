@@ -123,6 +123,7 @@ parameter.  The object has the following properties:
   e2.name      #=> 'greet'
   e2.namespace #=> 'spanish'
   e2.full_name #=> 'greet:spanish'
+```
 
 ## Contributing to trigger
  
