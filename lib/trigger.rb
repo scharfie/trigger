@@ -50,8 +50,12 @@ module Trigger
   class Subscriber
     attr_accessor :event
 
-    def initialize(event)
-      @event = event
+    def initialize(event_or_name, data={})
+      if Event === event_or_name
+        @event = event_or_name
+      else
+        @event = Event.new(event_or_name, data)
+      end
     end
 
     def perform
