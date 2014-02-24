@@ -102,6 +102,20 @@ class TestTrigger < TestCase
           )
       )
     end
+
+    it "should create new instance with event from name and data directly" do
+      instance = GreetSubscriber.new("greet:spanish", :name => "Chris")
+      assert_kind_of Trigger::Event, instance.event
+      assert_equal 'Chris', instance.event[:name]
+      assert_equal 'greet', instance.event.name
+    end
+
+    it "should create new instance from event object" do
+      event = Trigger::Event.new("greet:spanish", :name => "Chris")
+      instance = GreetSubscriber.new(event)
+      assert_kind_of Trigger::Event, instance.event
+      assert_equal 'greet', instance.event.name
+    end
   end
 
   describe ".subscribers_for" do

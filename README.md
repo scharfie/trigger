@@ -104,6 +104,29 @@ of the subscriber is effectively ignored).
   publish('greet', { ... })
 ```
 
+## Manually instantiating subscriber objects
+
+If you have subclassed a ```Trigger::Subscriber```, you can manually
+instantiate an instance by passing a ```Trigger::Event``` object, or by
+passing the event name and data:
+
+```ruby
+class GreetSubscriber < Trigger::Subscriber
+  ...
+end
+
+# explicit 
+GreetSubscriber.new(Trigger::Event.new(:greet, :name => "Chris"))
+
+# implicit
+GreetSubscriber.new(:greet, :name => "Chris")
+
+```
+
+*Note*: although you can manually instantiate using the implicit syntax,
+remember that the trigger client expects a singleton ```receive``` method 
+which is always passed a ```Trigger::Event``` instance.
+
 ## Reference
 
 ### Event object
