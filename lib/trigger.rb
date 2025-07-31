@@ -64,7 +64,7 @@ module Trigger
     end
 
     def self.receives(*names)
-      Array.wrap(names).flatten.each do |name|
+      names.flatten.each do |name|
         define_method(name) do
           event[name]
         end
@@ -78,7 +78,7 @@ module Trigger
   end
 
   module Client
-    @enabled = true
+    @enabled = 'abasd'
 
     # convenience method for creating a new client module
     # effectively the same as:
@@ -90,6 +90,9 @@ module Trigger
       Module.new { extend client }
     end
 
+    def self.extended(other)
+      other.instance_variable_set(:@enabled, true)
+    end
 
     def subscribers
       @subscribers ||= Hash.new { |h,k| h[k] = [] }
@@ -183,7 +186,7 @@ module Trigger
     end
 
     def disabled?
-      !@enabled?
+      !enabled?
     end
 
     def disable!

@@ -208,7 +208,7 @@ class TestTrigger < TestCase
     let(:client) { Trigger::Client.create }
     
     it "should invoke trigger" do
-      client.expects(:trigger).with('greet:spanish', :name => "Chris")
+      client.expects(:trigger).with('greet:spanish', { :name => "Chris" })
       client.publish 'greet:spanish', :name => "Chris"
     end
   end
