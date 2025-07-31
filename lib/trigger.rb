@@ -2,6 +2,11 @@ module Trigger
   class Event
     attr_reader :data
 
+    def self.wrap(event_or_name, data={})
+      return event_or_name if event_or_name.is_a?(Trigger::Event)
+      return new(event_or_name, data)
+    end
+
     def initialize(name, data={})
       @event_name = EventName.new(name)
       @data = data
@@ -51,23 +56,30 @@ module Trigger
     attr_accessor :event
 
     def initialize(event_or_name, data={})
-      if Event === event_or_name
-        @event = event_or_name
-      else
-        @event = Event.new(event_or_name, data)
-      end
+      @event = Trigger::Event.wrap(event_or_name, data)
     end
 
     def perform
       raise "Subscriber#perform not implemented"
     end
 
-    def self.receive(event)
+    def self.receives(*names)
+      Array.wrap(names).flatten.each do |name|
+        define_method(name) do
+          event[name]
+        end
+      end
+    end
+
+    def self.receive(event_or_name, data={})
+      event = Trigger::Event.wrap(event_or_name, data)
       new(event).perform
     end
   end
 
   module Client
+    @enabled = true
+
     # convenience method for creating a new client module
     # effectively the same as:
     # module SomeModule
@@ -77,6 +89,7 @@ module Trigger
       client = self
       Module.new { extend client }
     end
+
 
     def subscribers
       @subscribers ||= Hash.new { |h,k| h[k] = [] }
@@ -135,7 +148,7 @@ module Trigger
       subscriber
     end
 
-    # build a new Event object for the given event name, tag and data
+    # build a new Event object for the given event name and data
     def build_event(name, data)
       Event.new(name, data)
     end
@@ -145,11 +158,10 @@ module Trigger
     #
     # arguments:
     #   name (required) -> event name
-    #   tag (optional)  -> tag for event filtering
     #   data (optional) -> data hash for event
     #
     # trigger(:greet, :name => "Chris") #=> name, data
-    # trigger(:greet, 'spanish', :name => "Chris") #=> name, tag, data
+    # trigger(:greet, 'spanish', :name => "Chris") #=> name, data
     def trigger(name, data={})
       event = build_event(name, data)
 
@@ -164,6 +176,34 @@ module Trigger
     # for later triggering)
     def publish(name, data={})
       trigger(name, data)
+    end
+
+    def enabled?
+      !!@enabled
+    end
+
+    def disabled?
+      !@enabled?
+    end
+
+    def disable!
+      @enabled = false
+    end
+
+    def enable!
+      previous = @enabled
+
+      @enabled = true
+
+      if block_given?
+        begin
+          yield
+        ensure
+          @enabled = previous
+        end
+      end
+
+      self
     end
   end
 end

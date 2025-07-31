@@ -2,6 +2,35 @@ require 'helper'
 require 'trigger'
 
 class TestTrigger < TestCase
+  describe "client enable/disable" do
+    let(:client) { Module.new { extend Trigger::Client } }
+    it "should be enabled by default" do
+      assert client.enabled?
+    end
+
+    it "should disable" do
+      client.disable!
+      refute client.enabled?
+      assert client.disabled?
+    end
+
+    it "should enable after disable" do
+      client.disable!
+      client.enable!
+      assert client.enabled?
+      refute client.disabled?
+    end
+
+    it "should enable for duration of block" do
+      client.disable!
+      client.enable! do
+        assert client.enabled?
+      end
+
+      refute client.enabled?
+    end
+  end
+
   describe "event name" do
     it "should parse name and namespace" do
       event = Trigger::EventName.new("greet:spanish")
@@ -29,6 +58,11 @@ class TestTrigger < TestCase
 
   describe "event" do
     let(:event) { Trigger::Event.new('greet:spanish', :name => "Chris") }
+
+    it "should always return a Trigger::Event object on .wrap" do
+      assert_instance_of Trigger::Event, Trigger::Event.wrap(event)
+      assert_instance_of Trigger::Event, Trigger::Event.wrap('greet:spanish', :name => 'Chris')
+    end
 
     it "should have name" do
       assert_equal 'greet', event.name
@@ -116,6 +150,20 @@ class TestTrigger < TestCase
       assert_kind_of Trigger::Event, instance.event
       assert_equal 'greet', instance.event.name
     end
+
+    it "should define accesssors for received data params" do
+      subscriber = Class.new(GreetSubscriber) do
+        receives :from, :to
+
+        def perform
+          return "Hello #{to}, it's me, #{from}!"
+        end
+      end
+
+      result = subscriber.receive('some-event-name', { from: 'mickey', to: 'goofy' })
+
+      assert_equal "Hello goofy, it's me, mickey!", result
+    end
   end
 
   describe ".subscribers_for" do
@@ -137,7 +185,7 @@ class TestTrigger < TestCase
 
   describe ".trigger" do
     let(:client) { Trigger::Client.create }
-    let(:data)   { Hash.new(:name => "Chris") }
+    let(:data)   { Hash.new({ :name => "Chris" }) }
 
     it "should build event object to deliver" do
       event = client.build_event('greet:sometag', data)
